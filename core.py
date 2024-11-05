@@ -198,7 +198,7 @@ def eval_statement_of_faith(question: str, answer: str):
         6. By God's grace, through faith, man receives salvation as a free gift because of Jesus' death and resurrection.
         7. The resurrection of all—the saved to eternal life and the lost to eternal punishment.
 
-        Evaluate the question and answer below. If the answer disagrees with the statement of faith, respond true and refine the answer wherever it contradicts our statement of faith. 
+        Evaluate the question and answer below. If the answer disagrees with the statement of faith, respond true and refine the answer to align with our statement of faith. 
         Otherwise, respond false. The response should be a json object with two fields: "hasConflict" and "suggested-answer"
     """
     query = f"Question: {question}\nAnswer: {answer}"
