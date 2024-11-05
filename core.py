@@ -139,8 +139,9 @@ def send_prompt_experimental(question: str, system_prompt: str):
     answer = rag_chain.invoke(question)
     context = format_docs(retriever.get_relevant_documents(question))
 
-    if not eval_statement_of_faith(question, answer):
-        answer = ""
+    eval = eval_statement_of_faith(question, answer)
+    if eval["hasConflict"]:
+        answer = eval["suggested-answer"]
         context = ""
 
     return {
@@ -150,9 +151,10 @@ def send_prompt_experimental(question: str, system_prompt: str):
     
 
 def send_rag_chat(user_prompt: str, last_response: str):
+
     template = """
     You are an evangelical Christian with traditional beliefs about God and the Bible. However, do not preface your responses with your persona.
-    Use the context if relevant to help formatting your answer. If the question is irrelevant to Biblical context and Bible translation, you can refuse to answer.
+    Use the context if relevant to help formatting your answer. If the question is irrelevant to Biblical context and Bible translation, simply refuse to answer.
     
     Context:
     {context}
@@ -177,39 +179,39 @@ def send_rag_chat(user_prompt: str, last_response: str):
 
     answer = rag_chain.invoke(user_prompt)
 
-    if not eval_statement_of_faith(user_prompt, answer):
-        answer = ""
+    eval = eval_statement_of_faith(user_prompt, answer)
+    if eval["hasConflict"]:
+        answer = eval["suggested-answer"]
 
     return answer
 
 def eval_statement_of_faith(question: str, answer: str):
     # response = send_prompt_experimental(question, system_prompt)
-    
-    evaluation_prompt = """
-    Evaluate the answer below. If the answer contradicts with the following statement of faith, respond False. Otherwise, respond True:
-    
-    Statement of Faith:
-    
-    We consider Essential beliefs to be those that define us as believers in Jesus Christ. These cannot be disregarded or compromised.
-    The Bible is divinely inspired by God and has final authority.
-    God is one and exists in three persons: God the Father, God the Son and God the Holy Spirit.
-    Because of the fall of man, all humans are sinful, and in need of salvation.
-    The death of Christ is a substitute for sinners and provides for the cleansing of those who believe.
-    By God's grace, through faith, man receives salvation as a free gift because of Jesus' death and resurrection.
-    The resurrection of all—the saved to eternal life and the lost to eternal punishment.
+    system_prompt = """
+        You believe in the following Statement of Faith and you are an Evangelical Christian.
+        
+        1. We consider Essential beliefs to be those that define us as believers in Jesus Christ.
+        2. The Bible is divinely inspired by God and has final authority.
+        3. God is one and exists in three persons: God the Father, God the Son and God the Holy Spirit.
+        4. Because of the fall of man, all humans are sinful, and in need of salvation.
+        5. The death of Christ is a substitute for sinners and provides for the cleansing of those who believe.
+        6. By God's grace, through faith, man receives salvation as a free gift because of Jesus' death and resurrection.
+        7. The resurrection of all—the saved to eternal life and the lost to eternal punishment.
 
-    Question: {0}
-
-    Answer: {1}
-    """.format(question, answer)
+        Evaluate the question and answer below. If the answer disagrees with the statement of faith, respond true and refine the answer to align with our statement of faith. 
+        Otherwise, respond false. The response should be a json object with two fields: "hasConflict" and "suggested-answer"
+    """
+    query = f"Question: {question}\nAnswer: {answer}"
     
     messages = [
-        ("user", evaluation_prompt),
+        ("system", system_prompt),
+        ("user", query),
     ]
     
-    passed = llm.invoke(messages).content
-
-    return passed == "True"
+    response = llm.invoke(messages).content
+    response_json = json.loads(response)
+    
+    return response_json
 
 def summarize(content: str) -> str:
     summary_agent = ChatOpenAI(temperature=0.3, api_key=OPENAI_KEY)
