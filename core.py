@@ -209,7 +209,6 @@ def eval_statement_of_faith(question: str, answer: str):
     ]
     
     response = llm.invoke(messages).content
-    print(response)
     response_json = json.loads(response)
     
     return response_json
